@@ -2,24 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Barcode Logger</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 2rem;
       max-width: 400px;
-      margin: auto;
+      margin: 2rem auto;
+      padding: 1rem;
+      background-color: #f9f9f9;
     }
     label, input, select, button {
+      display: block;
       width: 100%;
       margin-top: 1rem;
       font-size: 1rem;
       padding: 0.5rem;
-    }
-    #status {
-      margin-top: 1rem;
-      color: green;
     }
   </style>
 </head>
@@ -27,53 +25,26 @@
 
   <h2>Barcode Logger</h2>
 
-  <label for="barcode">Barcode:</label>
-  <input type="text" id="barcode" placeholder="Scan or enter barcode" required />
-
-  <label for="action">Action:</label>
-  <select id="action">
-    <option value="IN">IN</option>
-    <option value="OUT">OUT</option>
-  </select>
-
-  <button onclick="submitData()">Submit</button>
-
-  <div id="status"></div>
+  <form action="https://script.google.com/macros/s/AKfycbzKhxuwniY-uGhAohdijVniBgsKZ3gUyO6FOqZZZ3yjRS2R77wTiI5gN08ky-9n1NQN/exec" method="GET" target="_blank" id="barcodeForm">
+    <input type="text" name="Timestamp" value="" id="timestamp" hidden>
+    
+    <label for="barcode">Barcode:</label>
+    <input type="text" name="Barcode" id="barcode" required />
+    
+    <label for="action">Action:</label>
+    <select name="Action" id="action">
+      <option value="IN">IN</option>
+      <option value="OUT">OUT</option>
+    </select>
+    
+    <button type="submit">Submit</button>
+  </form>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzKhxuwniY-uGhAohdijVniBgsKZ3gUyO6FOqZZZ3yjRS2R77wTiI5gN08ky-9n1NQN/exec";
-
-    function getTimestamp() {
-      return new Date().toISOString();
-    }
-
-    function submitData() {
-      const barcode = document.getElementById("barcode").value.trim();
-      const action = document.getElementById("action").value;
-      const timestamp = getTimestamp();
-
-      if (!barcode) {
-        alert("Please enter a barcode.");
-        return;
-      }
-
-      const params = new URLSearchParams({
-        Timestamp: timestamp,
-        Barcode: barcode,
-        Action: action
-      });
-
-      fetch(`${scriptURL}?${params.toString()}`)
-        .then(response => response.text())
-        .then(result => {
-          document.getElementById("status").innerText = "✔ " + result;
-          document.getElementById("barcode").value = "";
-        })
-        .catch(error => {
-          console.error("Error:", error);
-          document.getElementById("status").innerText = "❌ Error submitting data.";
-        });
-    }
+    const form = document.getElementById('barcodeForm');
+    form.addEventListener('submit', () => {
+      document.getElementById('timestamp').value = new Date().toISOString();
+    });
   </script>
 
 </body>
