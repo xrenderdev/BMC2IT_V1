@@ -1,51 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Barcode Logger</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 400px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background-color: #f9f9f9;
-    }
-    label, input, select, button {
-      display: block;
-      width: 100%;
-      margin-top: 1rem;
-      font-size: 1rem;
-      padding: 0.5rem;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Barcode Logger (iframe form submit)</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background-color: #f9f9f9;
+  }
+  label, input, select, button {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+  #status {
+    margin-top: 1rem;
+    font-weight: bold;
+  }
+  iframe {
+    display: none; /* Hide iframe */
+  }
+</style>
 </head>
 <body>
 
-  <h2>Barcode Logger</h2>
+<h2>Barcode Logger</h2>
 
-  <form action="https://script.google.com/macros/s/AKfycbzKhxuwniY-uGhAohdijVniBgsKZ3gUyO6FOqZZZ3yjRS2R77wTiI5gN08ky-9n1NQN/exec" method="GET" target="_blank" id="barcodeForm">
-    <input type="text" name="Timestamp" value="" id="timestamp" hidden>
-    
-    <label for="barcode">Barcode:</label>
-    <input type="text" name="Barcode" id="barcode" required />
-    
-    <label for="action">Action:</label>
-    <select name="Action" id="action">
-      <option value="IN">IN</option>
-      <option value="OUT">OUT</option>
-    </select>
-    
-    <button type="submit">Submit</button>
-  </form>
+<form id="barcodeForm" action="https://script.google.com/macros/s/AKfycbzKhxuwniY-uGhAohdijVniBgsKZ3gUyO6FOqZZZ3yjRS2R77wTiI5gN08ky-9n1NQN/exec" method="GET" target="hidden_iframe">
+  <input type="hidden" name="Timestamp" id="timestamp" />
 
-  <script>
-    const form = document.getElementById('barcodeForm');
-    form.addEventListener('submit', () => {
-      document.getElementById('timestamp').value = new Date().toISOString();
-    });
-  </script>
+  <label for="barcode">Barcode:</label>
+  <input type="text" name="Barcode" id="barcode" required />
+
+  <label for="action">Action:</label>
+  <select name="Action" id="action">
+    <option value="IN">IN</option>
+    <option value="OUT">OUT</option>
+  </select>
+
+  <button type="submit">Submit</button>
+</form>
+
+<div id="status"></div>
+
+<!-- Hidden iframe to handle the form submission invisibly -->
+<iframe name="hidden_iframe" id="hidden_iframe"></iframe>
+
+<script>
+  const form = document.getElementById('barcodeForm');
+  const statusDiv = document.getElementById('status');
+
+  // Set timestamp when submitting
+  form.addEventListener('submit', () => {
+    document.getElementById('timestamp').value = new Date().toISOString();
+    statusDiv.style.color = 'black';
+    statusDiv.textContent = 'Submitting...';
+  });
+
+  // Listen to iframe load event to detect when submission completes
+  const iframe = document.getElementById('hidden_iframe');
+  iframe.addEventListener('load', () => {
+    // We can’t read iframe contents due to cross-origin,
+    // but assuming success if it finished loading.
+    statusDiv.style.color = 'green';
+    statusDiv.textContent = '✔ Submitted successfully!';
+    form.reset();
+  });
+</script>
 
 </body>
 </html>
