@@ -1,211 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NCR Closing Template</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #2c3e50, #4ca1af);
-            color: white;
-        }
-        .title {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
-            text-transform: uppercase;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
-            width: 90%;
-            text-align: center;
-        }
-        h2 {
-            margin-bottom: 20px;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        label {
-            font-weight: bold;
-            margin-top: 10px;
-            width: 100%;
-            text-align: left;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-        }
-        input::placeholder, textarea::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        button {
-            margin-top: 15px;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background: #3498db;
-            color: white;
-            cursor: pointer;
-            width: 100%;
-        }
-        button:hover {
-            background: #2980b9;
-        }
-        #imagePreview {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .preview-img {
-            width: 100px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: 5px;
-            border: 2px solid white;
-        }
-        @media (max-width: 768px) {
-            .container {
-                width: 95%;
-                padding: 15px;
-            }
-            .title {
-                font-size: 24px;
-            }
-            button {
-                padding: 8px;
-            }
-        }
-    </style>
+  <title>QR Scanner with Google Sheet</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    #reader { width: 300px; margin: 20px auto; display: none; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+    #result { margin-top: 20px; font-size: 18px; color: green; }
+  </style>
 </head>
 <body>
-    <div class="title">NCR Closing</div>
-    <div class="container">
-        <h2>Technician Data Input</h2>
-        <form id="ncrForm">
-            <label>Work Start Time:</label> <input type="datetime-local" id="workStartTime">
-            <label>Completion Time:</label> <input type="datetime-local" id="completionTime">
-            <label>SR:</label> <input type="text" id="sr">
-            <label>TASK:</label> <input type="text" id="task">
-            <label>REGION:</label> <input type="text" id="region">
-            <label>DATE:</label> <input type="date" id="date">
-            <label>STATUS:</label> <input type="text" id="status">
-            <label>OPERATIONAL ON ARRIVAL:</label> <input type="text" id="operationalOnArrival">
-            <label>OPERATIONAL ON COMPLETION:</label> <input type="text" id="operationalOnCompletion">
-            <label>WAREHOUSE ARRIVAL:</label> <input type="datetime-local" id="warehouseArrival">
-            <label>WAREHOUSE DEPARTURE:</label> <input type="datetime-local" id="warehouseDeparture">
-            <label>START TRAVEL:</label> <input type="datetime-local" id="startTravel">
-            <label>ONSITE TIME:</label> <input type="datetime-local" id="onsiteTime">
-            <label>COMPLETED TIME:</label> <input type="datetime-local" id="completedTime">
-            <label>RETURN TIME:</label> <input type="datetime-local" id="returnTime">
-            <label>RESOLUTION COMMENTS:</label> <textarea id="resolutionComments"></textarea>
-            <label>PARTS USAGE(Part#):</label> <input type="text" id="partsUsage">
-            <label>SERIAL NUMBER OF PARTS USED:</label> <input type="text" id="serialNumberPartsUsed">
-            <label>PARTS RETURN:</label> <input type="text" id="partsReturn">
-            <label>Part# of part to be returned:</label> <input type="text" id="partReturnNumber">
-            <label>S/N of part to be returned:</label> <input type="text" id="serialNumberReturn">
-            <label>GLOBAL RETURN# /CE#:</label> <input type="text" id="globalReturn">
-            <label>WAYBILL RETURN#/RICO#:</label> <input type="text" id="waybillReturn">
-            <label>QUANTITY:</label> <input type="number" id="quantity">
-            <label>Technician Notes:</label> <textarea id="technicianNotes"></textarea>
-            <label>Upload Images (Max 10):</label> <input type="file" id="imageUpload" accept="image/*" multiple>
-            <div id="imagePreview"></div>
-            <button type="button" onclick="generatePDF()">Generate PDF</button>
-        </form>
-    </div>
+  <h1>QR Code Scanner</h1>
+  <button id="startBtn">Start Scan</button>
+  <div id="reader"></div>
+  <div id="result">Scanned data will appear here</div>
 
-    <script>
-        document.getElementById("imageUpload").addEventListener("change", function(event) {
-            const previewContainer = document.getElementById("imagePreview");
-            previewContainer.innerHTML = "";
-            const files = Array.from(event.target.files).slice(0, 10);
-            
-            files.forEach(file => {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = document.createElement("img");
-                    img.src = e.target.result;
-                    img.classList.add("preview-img");
-                    previewContainer.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            });
-        });
+  <script>
+    const startBtn = document.getElementById("startBtn");
+    const resultElement = document.getElementById("result");
+    const readerElement = document.getElementById("reader");
+    let html5QrCode;
 
-        function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            let y = 20;
-            const pageHeight = doc.internal.pageSize.height - 20; // Page height minus margin
-            const marginLeft = 20;
-            
-            doc.setFontSize(16);
-            doc.text("NCR Closing Report", marginLeft, y);
-            y += 20;
-            
-            document.querySelectorAll("input, textarea").forEach(input => {
-                if (input.type !== "file") {
-                    doc.setFontSize(12);
-                    let text = `${input.previousElementSibling.innerText}: ${input.value}`;
-                    
-                    // Split text into multiple lines if it's too long
-                    let lines = doc.splitTextToSize(text, 180);
-                    
-                    // Check if adding this text will exceed the page height
-                    if (y + lines.length * 7 > pageHeight) {
-                        doc.addPage();
-                        y = 20; // Reset Y position
-                    }
-                    
-                    doc.text(lines, marginLeft, y);
-                    y += lines.length * 7;
-                }
-            });
+    const sheetURL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL"; // Replace with your actual URL
 
-            // Handle images
-            const images = document.querySelectorAll(".preview-img");
-            images.forEach((img, index) => {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                ctx.drawImage(img, 0, 0);
-                const imgData = canvas.toDataURL("image/jpeg");
+    function sendToSheet(id) {
+      const payload = {
+        id: id,
+        data: "Scanned from QR"
+      };
 
-                // Check if space is available; otherwise, add a new page
-                if (y + 110 > pageHeight) {
-                    doc.addPage();
-                    y = 20; // Reset Y position
-                }
-
-                doc.addImage(imgData, 'JPEG', marginLeft, y, 100, 100);
-                y += 110; // Move Y down for the next image
-            });
-
-            doc.save("NCR_Closing_Report.pdf");
+      fetch(sheetURL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json"
         }
-    </script>
+      })
+      .then(response => response.text())
+      .then(result => {
+        resultElement.innerText += `\n✅ Saved to Sheet`;
+      })
+      .catch(error => {
+        resultElement.innerText += `\n❌ Error saving to Sheet`;
+      });
+    }
+
+    startBtn.addEventListener("click", () => {
+      readerElement.style.display = "block";
+      html5QrCode = new Html5Qrcode("reader");
+
+      Html5Qrcode.getCameras().then(devices => {
+        const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+
+        html5QrCode.start(
+          backCam.id,
+          { fps: 10, qrbox: 250 },
+          decodedText => {
+            resultElement.innerText = `Scanned: ${decodedText}`;
+            sendToSheet(decodedText);
+            html5QrCode.stop();
+            readerElement.style.display = "none";
+          }
+        );
+      });
+    });
+  </script>
 </body>
 </html>
