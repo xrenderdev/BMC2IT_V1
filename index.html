@@ -23,11 +23,12 @@
       width: 100%;
       max-width: 400px;
       height: 250px;
-      margin: 0 auto;
+      margin: 1rem auto;
       border: 2px solid #ccc;
       border-radius: 8px;
       background: #000;
       overflow: hidden;
+      display: none;
     }
 
     .button-group {
@@ -36,12 +37,17 @@
 
     button {
       padding: 0.75rem 2rem;
-      margin: 0 0.5rem;
+      margin: 0.5rem;
       border: none;
       border-radius: 5px;
       font-size: 1rem;
       cursor: pointer;
       transition: 0.3s ease;
+    }
+
+    #startBtn {
+      background-color: #3498db;
+      color: #fff;
     }
 
     #inBtn {
@@ -73,9 +79,12 @@
 </head>
 <body>
   <h2>Barcode IN/OUT Logger</h2>
+
+  <button id="startBtn">Start Scanning</button>
+
   <div id="scanner-container"></div>
 
-  <div id="scanned-code">Waiting for barcode...</div>
+  <div id="scanned-code">Scan a barcode...</div>
 
   <div class="button-group">
     <button id="inBtn" disabled>IN</button>
@@ -88,41 +97,42 @@
 
   <script>
     let lastScannedCode = "";
+    let scannerStarted = false;
 
-    // Initialize barcode scanner
-    Quagga.init({
-      inputStream: {
-        type: "LiveStream",
-        target: document.querySelector("#scanner-container"),
-        constraints: {
-          facingMode: "environment"
+    document.getElementById("startBtn").addEventListener("click", function () {
+      if (scannerStarted) return;
+
+      document.getElementById("scanner-container").style.display = "block";
+      Quagga.init({
+        inputStream: {
+          type: "LiveStream",
+          target: document.querySelector("#scanner-container"),
+          constraints: { facingMode: "environment" }
+        },
+        decoder: { readers: ["ean_reader", "code_128_reader"] }
+      }, function(err) {
+        if (err) {
+          console.error(err);
+          alert("Failed to start camera.");
+          return;
         }
-      },
-      decoder: {
-        readers: ["ean_reader", "code_128_reader"]
-      }
-    }, function(err) {
-      if (err) {
-        console.error(err);
-        alert("Error initializing camera. Please check permissions.");
-        return;
-      }
-      Quagga.start();
+        Quagga.start();
+        scannerStarted = true;
+        document.getElementById("startBtn").disabled = true;
+      });
+
+      Quagga.onDetected(function(data) {
+        lastScannedCode = data.codeResult.code;
+        document.getElementById("scanned-code").innerText = `Scanned Code: ${lastScannedCode}`;
+        document.getElementById("inBtn").disabled = false;
+        document.getElementById("outBtn").disabled = false;
+      });
     });
 
-    // On barcode detected
-    Quagga.onDetected(function(data) {
-      lastScannedCode = data.codeResult.code;
-      document.getElementById("scanned-code").innerText = `Scanned Code: ${lastScannedCode}`;
-      document.getElementById("inBtn").disabled = false;
-      document.getElementById("outBtn").disabled = false;
-    });
-
-    // Log IN/OUT action
     async function logAction(action) {
       if (!lastScannedCode) return;
 
-      const res = await fetch("https://script.google.com/macros/s/AKfycbys6cNqC_S_OY3H9eG3--tSAxC8EJudtLYNjoS1PSpUQyIvtezaG-NVxHOTwj7Lwqrj/exec", {
+      const res = await fetch("YOUR_GOOGLE_APPS_SCRIPT_URL", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
