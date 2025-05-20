@@ -7,12 +7,15 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 2rem;
+      padding: 2rem;
+      max-width: 400px;
+      margin: auto;
     }
     label, input, select, button {
-      display: block;
-      margin: 1rem 0;
+      width: 100%;
+      margin-top: 1rem;
       font-size: 1rem;
+      padding: 0.5rem;
     }
     #status {
       margin-top: 1rem;
@@ -21,10 +24,11 @@
   </style>
 </head>
 <body>
-  <h1>Barcode Logger</h1>
+
+  <h2>Barcode Logger</h2>
 
   <label for="barcode">Barcode:</label>
-  <input type="text" id="barcode" placeholder="Scan or enter barcode" />
+  <input type="text" id="barcode" placeholder="Scan or enter barcode" required />
 
   <label for="action">Action:</label>
   <select id="action">
@@ -39,14 +43,14 @@
   <script>
     const scriptURL = "https://script.google.com/macros/s/AKfycbys6cNqC_S_OY3H9eG3--tSAxC8EJudtLYNjoS1PSpUQyIvtezaG-NVxHOTwj7Lwqrj/exec";
 
-    function getCurrentTimestamp() {
+    function getTimestamp() {
       return new Date().toISOString();
     }
 
     function submitData() {
       const barcode = document.getElementById("barcode").value.trim();
       const action = document.getElementById("action").value;
-      const timestamp = getCurrentTimestamp();
+      const timestamp = getTimestamp();
 
       if (!barcode) {
         alert("Please enter a barcode.");
@@ -59,22 +63,18 @@
         Action: action
       });
 
-      fetch(`${scriptURL}?${params.toString()}`, {
-        method: 'GET'
-      })
-      .then(response => {
-        if (response.ok) {
-          document.getElementById("status").innerText = "Data submitted successfully!";
+      fetch(`${scriptURL}?${params.toString()}`)
+        .then(response => response.text())
+        .then(result => {
+          document.getElementById("status").innerText = "✔ " + result;
           document.getElementById("barcode").value = "";
-        } else {
-          document.getElementById("status").innerText = "Failed to submit data.";
-        }
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        document.getElementById("status").innerText = "Error submitting data.";
-      });
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          document.getElementById("status").innerText = "❌ Error submitting data.";
+        });
     }
   </script>
+
 </body>
 </html>
