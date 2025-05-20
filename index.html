@@ -1,144 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Barcode IN/OUT Logger</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manual Barcode Logger</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f7f9fb;
+      background: #f0f2f5;
       text-align: center;
-      padding: 20px;
+      padding: 50px;
     }
-    #scanner-container {
-      max-width: 480px;
-      height: 300px;
-      margin: 20px auto;
-      border: 2px solid #ccc;
+
+    h2 {
+      margin-bottom: 20px;
+    }
+
+    form {
+      display: inline-block;
+      background: white;
+      padding: 30px;
       border-radius: 10px;
-      background: black;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    button {
-      padding: 10px 20px;
-      margin: 10px;
+
+    input, select, button {
       font-size: 16px;
-      border: none;
+      padding: 10px;
+      margin: 10px;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
       border-radius: 5px;
+    }
+
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
       cursor: pointer;
     }
-    #startBtn { background-color: #3498db; color: white; }
-    #inBtn { background-color: #2ecc71; color: white; }
-    #outBtn { background-color: #e74c3c; color: white; }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    #scanned-code, #log-status {
+
+    #status {
       margin-top: 20px;
-      font-size: 1.2em;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <h2>Barcode IN/OUT Logger</h2>
-  <button id="startBtn">Start Scanning</button>
-  <div id="scanner-container"></div>
-  <div id="scanned-code">Waiting for barcode...</div>
-  <div>
-    <button id="inBtn" disabled>IN</button>
-    <button id="outBtn" disabled>OUT</button>
-  </div>
-  <div id="log-status"></div>
+
+  <h2>Manual Barcode IN/OUT Logger</h2>
+
+  <form id="barcodeForm">
+    <input type="datetime-local" id="timestamp" required>
+    <input type="text" id="barcode" placeholder="Enter Barcode" required>
+    <select id="action" required>
+      <option value="">Select Action</option>
+      <option value="IN">IN</option>
+      <option value="OUT">OUT</option>
+    </select>
+    <button type="submit">Send to Sheet</button>
+  </form>
+
+  <div id="status"></div>
 
   <script>
-    let lastScannedCode = "";
-    let scanning = false;
+    const form = document.getElementById('barcodeForm');
+    const status = document.getElementById('status');
 
-    const scannerContainer = document.getElementById("scanner-container");
-    const scannedDisplay = document.getElementById("scanned-code");
-    const inBtn = document.getElementById("inBtn");
-    const outBtn = document.getElementById("outBtn");
-    const logStatus = document.getElementById("log-status");
-    const startBtn = document.getElementById("startBtn");
+    // Set current datetime by default
+    document.getElementById("timestamp").value = new Date().toISOString().slice(0, 16);
 
-    startBtn.addEventListener("click", () => {
-      if (scanning) return;
-      scanning = true;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-      Quagga.init({
-        inputStream: {
-          type: "LiveStream",
-          target: scannerContainer,
-          constraints: {
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        },
-        decoder: {
-          readers: [
-            "code_128_reader",
-            "ean_reader",
-            "ean_8_reader",
-            "code_39_reader",
-            "code_39_vin_reader",
-            "codabar_reader",
-            "upc_reader",
-            "upc_e_reader",
-            "i2of5_reader"
-          ],
-        },
-        locate: true
-      }, function(err) {
-        if (err) {
-          alert("Camera error: " + err.message);
-          return;
-        }
-        Quagga.start();
-      });
+      const barcode = document.getElementById('barcode').value.trim();
+      const action = document.getElementById('action').value;
+      const timestamp = document.getElementById('timestamp').value;
 
-      Quagga.onDetected(data => {
-        const code = data.codeResult.code;
-        if (code && code !== lastScannedCode) {
-          lastScannedCode = code;
-          scannedDisplay.innerText = "Scanned Code: " + code;
-          inBtn.disabled = false;
-          outBtn.disabled = false;
-          logStatus.innerText = "";
-        }
-      });
-    });
-
-    async function logAction(action) {
-      if (!lastScannedCode) return alert("Scan a barcode first!");
-
-      const endpoint = "https://script.google.com/macros/s/AKfycbys6cNqC_S_OY3H9eG3--tSAxC8EJudtLYNjoS1PSpUQyIvtezaG-NVxHOTwj7Lwqrj/exec"; // Replace with your Web App URL
+      const data = {
+        code: barcode,
+        action: action,
+        timestamp: timestamp
+      };
 
       try {
-        const res = await fetch(endpoint, {
+        const response = await fetch("YOUR_WEB_APP_URL_HERE", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: lastScannedCode, action })
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
         });
-        const json = await res.json();
-        if (json.result === "success") {
-          logStatus.innerText = `${action} recorded: ${lastScannedCode}`;
-          inBtn.disabled = true;
-          outBtn.disabled = true;
-          lastScannedCode = "";
-          scannedDisplay.innerText = "Waiting for barcode...";
+
+        const result = await response.json();
+        if (result.result === "success") {
+          status.textContent = "✅ Data logged successfully!";
+          form.reset();
         } else {
-          logStatus.innerText = `Error: ${json.message}`;
+          status.textContent = "❌ Error: " + result.message;
         }
       } catch (err) {
-        logStatus.innerText = `Network error: ${err.message}`;
+        status.textContent = "❌ Request failed: " + err.message;
       }
-    }
-
-    inBtn.addEventListener("click", () => logAction("IN"));
-    outBtn.addEventListener("click", () => logAction("OUT"));
+    });
   </script>
+
 </body>
 </html>
