@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Barcode IN/OUT Logger</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
   <style>
@@ -12,7 +12,6 @@
       text-align: center;
       padding: 20px;
     }
-
     #scanner-container {
       max-width: 480px;
       height: 300px;
@@ -21,7 +20,6 @@
       border-radius: 10px;
       background: black;
     }
-
     button {
       padding: 10px 20px;
       margin: 10px;
@@ -30,16 +28,13 @@
       border-radius: 5px;
       cursor: pointer;
     }
-
     #startBtn { background-color: #3498db; color: white; }
     #inBtn { background-color: #2ecc71; color: white; }
     #outBtn { background-color: #e74c3c; color: white; }
-
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-
     #scanned-code, #log-status {
       margin-top: 20px;
       font-size: 1.2em;
@@ -48,17 +43,13 @@
 </head>
 <body>
   <h2>Barcode IN/OUT Logger</h2>
-
   <button id="startBtn">Start Scanning</button>
   <div id="scanner-container"></div>
-
   <div id="scanned-code">Waiting for barcode...</div>
-
   <div>
     <button id="inBtn" disabled>IN</button>
     <button id="outBtn" disabled>OUT</button>
   </div>
-
   <div id="log-status"></div>
 
   <script>
@@ -67,11 +58,13 @@
 
     const scannerContainer = document.getElementById("scanner-container");
     const scannedDisplay = document.getElementById("scanned-code");
+    const inBtn = document.getElementById("inBtn");
+    const outBtn = document.getElementById("outBtn");
+    const logStatus = document.getElementById("log-status");
+    const startBtn = document.getElementById("startBtn");
 
-    document.getElementById("startBtn").addEventListener("click", () => {
+    startBtn.addEventListener("click", () => {
       if (scanning) return;
-
-      scannerContainer.style.display = "block";
       scanning = true;
 
       Quagga.init({
@@ -96,23 +89,14 @@
             "upc_e_reader",
             "i2of5_reader"
           ],
-          debug: {
-            drawBoundingBox: true,
-            showFrequency: true,
-            showPattern: true,
-            showFoundPattern: true,
-            showCanvas: true
-          }
         },
         locate: true
       }, function(err) {
         if (err) {
-          console.error("Quagga init failed:", err);
           alert("Camera error: " + err.message);
           return;
         }
         Quagga.start();
-        console.log("Scanner started");
       });
 
       Quagga.onDetected(data => {
@@ -120,31 +104,41 @@
         if (code && code !== lastScannedCode) {
           lastScannedCode = code;
           scannedDisplay.innerText = "Scanned Code: " + code;
-          document.getElementById("inBtn").disabled = false;
-          document.getElementById("outBtn").disabled = false;
+          inBtn.disabled = false;
+          outBtn.disabled = false;
+          logStatus.innerText = "";
         }
       });
     });
 
     async function logAction(action) {
-      if (!lastScannedCode) return;
+      if (!lastScannedCode) return alert("Scan a barcode first!");
 
-      // Replace with your Google Apps Script endpoint:
-      const endpoint = "https://script.google.com/macros/s/AKfycbys6cNqC_S_OY3H9eG3--tSAxC8EJudtLYNjoS1PSpUQyIvtezaG-NVxHOTwj7Lwqrj/exec";
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: lastScannedCode, action })
-      });
+      const endpoint = "https://script.google.com/macros/s/AKfycbys6cNqC_S_OY3H9eG3--tSAxC8EJudtLYNjoS1PSpUQyIvtezaG-NVxHOTwj7Lwqrj/exec"; // Replace with your Web App URL
 
-      const result = await res.json();
-      document.getElementById("log-status").innerText = `${action} recorded: ${lastScannedCode}`;
-      document.getElementById("inBtn").disabled = true;
-      document.getElementById("outBtn").disabled = true;
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: lastScannedCode, action })
+        });
+        const json = await res.json();
+        if (json.result === "success") {
+          logStatus.innerText = `${action} recorded: ${lastScannedCode}`;
+          inBtn.disabled = true;
+          outBtn.disabled = true;
+          lastScannedCode = "";
+          scannedDisplay.innerText = "Waiting for barcode...";
+        } else {
+          logStatus.innerText = `Error: ${json.message}`;
+        }
+      } catch (err) {
+        logStatus.innerText = `Network error: ${err.message}`;
+      }
     }
 
-    document.getElementById("inBtn").addEventListener("click", () => logAction("IN"));
-    document.getElementById("outBtn").addEventListener("click", () => logAction("OUT"));
+    inBtn.addEventListener("click", () => logAction("IN"));
+    outBtn.addEventListener("click", () => logAction("OUT"));
   </script>
 </body>
 </html>
