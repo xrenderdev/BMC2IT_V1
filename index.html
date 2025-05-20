@@ -1,110 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Manual Barcode Logger</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Barcode Logger</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f2f5;
-      text-align: center;
-      padding: 50px;
+      margin: 2rem;
     }
-
-    h2 {
-      margin-bottom: 20px;
+    label, input, select, button {
+      display: block;
+      margin: 1rem 0;
+      font-size: 1rem;
     }
-
-    form {
-      display: inline-block;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    input, select, button {
-      font-size: 16px;
-      padding: 10px;
-      margin: 10px;
-      width: 100%;
-      max-width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-
-    button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
     #status {
-      margin-top: 20px;
-      font-weight: bold;
+      margin-top: 1rem;
+      color: green;
     }
   </style>
 </head>
 <body>
+  <h1>Barcode Logger</h1>
 
-  <h2>Manual Barcode IN/OUT Logger</h2>
+  <label for="barcode">Barcode:</label>
+  <input type="text" id="barcode" placeholder="Scan or enter barcode" />
 
-  <form id="barcodeForm">
-    <input type="datetime-local" id="timestamp" required>
-    <input type="text" id="barcode" placeholder="Enter Barcode" required>
-    <select id="action" required>
-      <option value="">Select Action</option>
-      <option value="IN">IN</option>
-      <option value="OUT">OUT</option>
-    </select>
-    <button type="submit">Send to Sheet</button>
-  </form>
+  <label for="action">Action:</label>
+  <select id="action">
+    <option value="IN">IN</option>
+    <option value="OUT">OUT</option>
+  </select>
+
+  <button onclick="submitData()">Submit</button>
 
   <div id="status"></div>
 
   <script>
-    const form = document.getElementById('barcodeForm');
-    const status = document.getElementById('status');
+    const scriptURL = "https://script.google.com/macros/s/AKfycbys6cNqC_S_OY3H9eG3--tSAxC8EJudtLYNjoS1PSpUQyIvtezaG-NVxHOTwj7Lwqrj/exec";
 
-    // Set current datetime by default
-    document.getElementById("timestamp").value = new Date().toISOString().slice(0, 16);
+    function getCurrentTimestamp() {
+      return new Date().toISOString();
+    }
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    function submitData() {
+      const barcode = document.getElementById("barcode").value.trim();
+      const action = document.getElementById("action").value;
+      const timestamp = getCurrentTimestamp();
 
-      const barcode = document.getElementById('barcode').value.trim();
-      const action = document.getElementById('action').value;
-      const timestamp = document.getElementById('timestamp').value;
-
-      const data = {
-        code: barcode,
-        action: action,
-        timestamp: timestamp
-      };
-
-      try {
-        const response = await fetch("YOUR_WEB_APP_URL_HERE", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(data)
-        });
-
-        const result = await response.json();
-        if (result.result === "success") {
-          status.textContent = "✅ Data logged successfully!";
-          form.reset();
-        } else {
-          status.textContent = "❌ Error: " + result.message;
-        }
-      } catch (err) {
-        status.textContent = "❌ Request failed: " + err.message;
+      if (!barcode) {
+        alert("Please enter a barcode.");
+        return;
       }
-    });
-  </script>
 
+      const params = new URLSearchParams({
+        Timestamp: timestamp,
+        Barcode: barcode,
+        Action: action
+      });
+
+      fetch(`${scriptURL}?${params.toString()}`, {
+        method: 'GET'
+      })
+      .then(response => {
+        if (response.ok) {
+          document.getElementById("status").innerText = "Data submitted successfully!";
+          document.getElementById("barcode").value = "";
+        } else {
+          document.getElementById("status").innerText = "Failed to submit data.";
+        }
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        document.getElementById("status").innerText = "Error submitting data.";
+      });
+    }
+  </script>
 </body>
 </html>
