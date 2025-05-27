@@ -1,78 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Barcode Logger (iframe form submit)</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    max-width: 400px;
-    margin: 2rem auto;
-    padding: 1rem;
-    background-color: #f9f9f9;
-  }
-  label, input, select, button {
-    display: block;
-    width: 100%;
-    margin-top: 1rem;
-    font-size: 1rem;
-    padding: 0.5rem;
-  }
-  #status {
-    margin-top: 1rem;
-    font-weight: bold;
-  }
-  iframe {
-    display: none; /* Hide iframe */
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login & Register</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f0f0f0;
+      margin: 0;
+    }
+    .container {
+      width: 350px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .toggle {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .toggle a {
+      cursor: pointer;
+      color: #007bff;
+    }
+  </style>
 </head>
 <body>
+  <div class="container" id="login-container">
+    <h2>Login</h2>
+    <div class="form-group">
+      <label for="login-username">Username</label>
+      <input type="text" id="login-username" />
+    </div>
+    <div class="form-group">
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" />
+    </div>
+    <button onclick="login()">Login</button>
+    <div class="toggle">
+      Don't have an account? <a onclick="showRegister()">Register</a>
+    </div>
+  </div>
 
-<h2>Barcode Logger</h2>
+  <div class="container" id="register-container" style="display:none;">
+    <h2>Register</h2>
+    <div class="form-group">
+      <label for="register-username">Username</label>
+      <input type="text" id="register-username" />
+    </div>
+    <div class="form-group">
+      <label for="register-email">Email</label>
+      <input type="email" id="register-email" />
+    </div>
+    <div class="form-group">
+      <label for="register-password">Password</label>
+      <input type="password" id="register-password" />
+    </div>
+    <button onclick="register()">Register</button>
+    <div class="toggle">
+      Already have an account? <a onclick="showLogin()">Login</a>
+    </div>
+  </div>
 
-<form id="barcodeForm" action="https://script.google.com/macros/s/AKfycbzKhxuwniY-uGhAohdijVniBgsKZ3gUyO6FOqZZZ3yjRS2R77wTiI5gN08ky-9n1NQN/exec" method="GET" target="hidden_iframe">
-  <input type="hidden" name="Timestamp" id="timestamp" />
+  <script>
+    window.onload = function() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (user && user.loggedIn) {
+        goToHomePage();
+      }
+    };
 
-  <label for="barcode">Barcode:</label>
-  <input type="text" name="Barcode" id="barcode" required />
+    function showRegister() {
+      document.getElementById('login-container').style.display = 'none';
+      document.getElementById('register-container').style.display = 'block';
+    }
 
-  <label for="action">Action:</label>
-  <select name="Action" id="action">
-    <option value="IN">IN</option>
-    <option value="OUT">OUT</option>
-  </select>
+    function showLogin() {
+      document.getElementById('register-container').style.display = 'none';
+      document.getElementById('login-container').style.display = 'block';
+    }
 
-  <button type="submit">Submit</button>
-</form>
+    function login() {
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+      const user = JSON.parse(localStorage.getItem('user'));
 
-<div id="status"></div>
+      if (user && username === user.username && password === user.password) {
+        user.loggedIn = true;
+        localStorage.setItem('user', JSON.stringify(user));
+        goToHomePage();
+      } else {
+        alert('Invalid username or password.');
+      }
+    }
 
-<!-- Hidden iframe to handle the form submission invisibly -->
-<iframe name="hidden_iframe" id="hidden_iframe"></iframe>
+    function register() {
+      const username = document.getElementById('register-username').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
 
-<script>
-  const form = document.getElementById('barcodeForm');
-  const statusDiv = document.getElementById('status');
+      const user = { username, email, password, loggedIn: true };
+      localStorage.setItem('user', JSON.stringify(user));
+      goToHomePage();
+    }
 
-  // Set timestamp when submitting
-  form.addEventListener('submit', () => {
-    document.getElementById('timestamp').value = new Date().toISOString();
-    statusDiv.style.color = 'black';
-    statusDiv.textContent = 'Submitting...';
-  });
+    function goToHomePage() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      document.body.innerHTML = `
+        <div style="text-align:center; padding:50px">
+          <h1>Welcome, ${user.username}!</h1>
+          <p>You are now logged in.</p>
+          <div style="margin-top: 20px;">
+            <label for="location">Select Location:</label>
+            <select id="location">
+              <option value="Shepparton">Shepparton</option>
+              <option value="Bendigo">Bendigo</option>
+              <option value="Gippsland">Gippsland</option>
+            </select>
+          </div>
+          <div style="margin-top: 20px;">
+            <label for="status">CheckIn/CheckOut Status:</label>
+            <select id="status">
+              <option value="In">In</option>
+              <option value="Out">Out</option>
+            </select>
+          </div>
+          <div style="margin-top: 20px;">
+            <label for="qr-result">QR Code Result:</label>
+            <input type="text" id="qr-result" readonly />
+            <div id="reader" style="width:300px; margin:auto; margin-top:10px;"></div>
+            <button onclick="startScan()" style="margin-top: 10px;">Start QR Scan (Back Camera)</button>
+          </div>
+          <div style="margin-top: 20px;">
+            <label for="note">Extra Note (Optional):</label>
+            <input type="text" id="note" placeholder="Enter any remarks..." style="width: 300px; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
+          </div>
+          <button style="margin-top: 20px;" onclick="submitInfo()">Send</button>
+          <button style="margin-top: 10px; background: #dc3545;" onclick="logout()">Logout</button>
+          <div id="confirmation" style="margin-top: 20px;"></div>
+        </div>
+      `;
+    }
 
-  // Listen to iframe load event to detect when submission completes
-  const iframe = document.getElementById('hidden_iframe');
-  iframe.addEventListener('load', () => {
-    // We can’t read iframe contents due to cross-origin,
-    // but assuming success if it finished loading.
-    statusDiv.style.color = 'green';
-    statusDiv.textContent = '✔ Submitted successfully!';
-    form.reset();
-  });
-</script>
+    function startScan() {
+      const qrReader = new Html5Qrcode("reader");
+      qrReader.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          document.getElementById("qr-result").value = decodedText;
+          qrReader.stop();
+        },
+        (errorMessage) => {
+          // Optional: console.log(errorMessage);
+        }
+      );
+    }
 
+    function submitInfo() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const location = document.getElementById('location').value;
+      const status = document.getElementById('status').value;
+      const qrText = document.getElementById('qr-result').value;
+      const note = document.getElementById('note').value;
+      const timestamp = new Date().toLocaleString();
+
+      document.getElementById('confirmation').innerHTML = `
+        <p><strong>Sent!</strong><br>
+        Username: ${user.username}<br>
+        Location: ${location}<br>
+        Status: ${status}<br>
+        QR Code: ${qrText}<br>
+        Note: ${note}<br>
+        Time: ${timestamp}</p>
+      `;
+    }
+
+    function logout() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      user.loggedIn = false;
+      localStorage.setItem('user', JSON.stringify(user));
+      location.reload();
+    }
+  </script>
 </body>
 </html>
