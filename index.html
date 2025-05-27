@@ -188,6 +188,7 @@
             <input type="text" id="note" placeholder="Enter any remarks..." style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
           </div>
           <button style="margin-top: 20px;" onclick="submitInfo()">Send</button>
+          <button style="margin-top: 10px;" onclick="resetFields()">Reset</button>
           <button style="margin-top: 10px; background: #dc3545;" onclick="logout()">Logout</button>
           <div id="confirmation" style="margin-top: 20px;"></div>
         </div>
@@ -216,6 +217,14 @@
       });
     }
 
+    function resetFields() {
+      document.getElementById('location').selectedIndex = 0;
+      document.getElementById('status').selectedIndex = 0;
+      document.getElementById('qr-result').value = '';
+      document.getElementById('note').value = '';
+      document.getElementById('confirmation').innerHTML = '';
+    }
+
     function submitInfo() {
       const user = JSON.parse(localStorage.getItem('user'));
       const location = document.getElementById('location').value;
@@ -224,15 +233,25 @@
       const note = document.getElementById('note').value;
       const timestamp = new Date().toLocaleString();
 
-      document.getElementById('confirmation').innerHTML = `
-        <p><strong>Sent!</strong><br>
-        Username: ${user.username}<br>
-        Location: ${location}<br>
-        Status: ${status}<br>
-        QR Code: ${qrText}<br>
-        Note: ${note}<br>
-        Time: ${timestamp}</p>
-      `;
+      const data = new URLSearchParams();
+      data.append("username", user.username);
+      data.append("location", location);
+      data.append("status", status);
+      data.append("qr", qrText);
+      data.append("note", note);
+      data.append("timestamp", timestamp);
+
+      fetch("https://script.google.com/macros/s/AKfycbzKhxuwniY-uGhAohdijVniBgsKZ3gUyO6FOqZZZ3yjRS2R77wTiI5gN08ky-9n1NQN/exec", {
+        method: "POST",
+        body: data
+      })
+      .then(response => response.text())
+      .then(result => {
+        document.getElementById('confirmation').innerHTML = `<p><strong>Sent!</strong> ${result}</p>`;
+      })
+      .catch(error => {
+        document.getElementById('confirmation').innerHTML = `<p style="color:red;"><strong>Error:</strong> ${error}</p>`;
+      });
     }
 
     function logout() {
