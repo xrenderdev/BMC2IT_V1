@@ -67,8 +67,11 @@
       color: #007bff;
     }
     #reader {
-      max-width: 100%;
+      width: 100%;
+      max-width: 300px;
       margin: 10px auto;
+      border: 1px solid #ccc;
+      border-radius: 10px;
     }
   </style>
 </head>
@@ -177,7 +180,7 @@
           <div style="margin-top: 20px;">
             <label for="qr-result">QR Code Result:</label>
             <input type="text" id="qr-result" readonly style="width: 100%; padding: 10px; margin-bottom: 10px;" />
-            <div id="reader" style="width:100%; max-width:300px; margin:auto;"></div>
+            <div id="reader"></div>
             <button onclick="startScan()" style="margin-top: 10px;">Start QR Scan (Back Camera)</button>
           </div>
           <div style="margin-top: 20px;">
@@ -200,13 +203,13 @@
       qrReader = new Html5Qrcode("reader");
       qrReader.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         (decodedText) => {
           document.getElementById("qr-result").value = decodedText;
           qrReader.stop().then(() => qrReader.clear());
         },
         (errorMessage) => {
-          // Optional error handling
+          console.warn("QR Code Scan Error: ", errorMessage);
         }
       ).catch(err => {
         alert("Camera access error: " + err);
