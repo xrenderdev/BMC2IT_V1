@@ -177,4 +177,67 @@
           <div style="margin-top: 20px;">
             <label for="qr-result">QR Code Result:</label>
             <input type="text" id="qr-result" readonly style="width: 100%; padding: 10px; margin-bottom: 10px;" />
-            <div id="reader"
+            <div id="reader" style="width:100%; max-width:300px; margin:auto;"></div>
+            <button onclick="startScan()" style="margin-top: 10px;">Start QR Scan (Back Camera)</button>
+          </div>
+          <div style="margin-top: 20px;">
+            <label for="note">Extra Note (Optional):</label>
+            <input type="text" id="note" placeholder="Enter any remarks..." style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 5px; border: 1px solid #ccc;">
+          </div>
+          <button style="margin-top: 20px;" onclick="submitInfo()">Send</button>
+          <button style="margin-top: 10px; background: #dc3545;" onclick="logout()">Logout</button>
+          <div id="confirmation" style="margin-top: 20px;"></div>
+        </div>
+      `;
+    }
+
+    function startScan() {
+      if (qrReader) {
+        qrReader.stop().then(() => {
+          qrReader.clear();
+        }).catch(() => {});
+      }
+      qrReader = new Html5Qrcode("reader");
+      qrReader.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          document.getElementById("qr-result").value = decodedText;
+          qrReader.stop().then(() => qrReader.clear());
+        },
+        (errorMessage) => {
+          // Optional error handling
+        }
+      ).catch(err => {
+        alert("Camera access error: " + err);
+      });
+    }
+
+    function submitInfo() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const location = document.getElementById('location').value;
+      const status = document.getElementById('status').value;
+      const qrText = document.getElementById('qr-result').value;
+      const note = document.getElementById('note').value;
+      const timestamp = new Date().toLocaleString();
+
+      document.getElementById('confirmation').innerHTML = `
+        <p><strong>Sent!</strong><br>
+        Username: ${user.username}<br>
+        Location: ${location}<br>
+        Status: ${status}<br>
+        QR Code: ${qrText}<br>
+        Note: ${note}<br>
+        Time: ${timestamp}</p>
+      `;
+    }
+
+    function logout() {
+      const user = JSON.parse(localStorage.getItem('user'));
+      user.loggedIn = false;
+      localStorage.setItem('user', JSON.stringify(user));
+      location.reload();
+    }
+  </script>
+</body>
+</html>
