@@ -1,68 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QR Scanner with Google Sheet</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>QR Code Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; }
-    #reader { width: 300px; margin: 20px auto; display: none; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
-    #result { margin-top: 20px; font-size: 18px; color: green; white-space: pre-wrap; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+    }
+    #reader {
+      width: 300px;
+      margin: auto;
+    }
+    input, button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 1em;
+    }
   </style>
 </head>
 <body>
   <h1>QR Code Scanner</h1>
-  <button id="startBtn">Start Scan</button>
   <div id="reader"></div>
-  <div id="result">Scanned data will appear here</div>
+  <br>
+  <input type="text" id="name" placeholder="Enter Name">
+  <br>
+  <input type="text" id="qr-result" placeholder="QR Code Result" readonly>
+  <br>
+  <button onclick="startScanner()">Scan QR Code</button>
+  <button onclick="sendData()">Send</button>
 
   <script>
-    const sheetURL = "https://script.google.com/macros/s/AKfycby3G-2F1dSzPuXNgqKqo-7B6NjdxD9MXO_VTjxfArribBYClFCKhLC71HURxWHkKXQ7/exec";
-
-    const startBtn = document.getElementById("startBtn");
-    const resultElement = document.getElementById("result");
-    const readerElement = document.getElementById("reader");
     let html5QrCode;
 
-    function sendToSheet(id) {
-      const payload = {
-        id: id,
-        data: "QR from Web"
+    function startScanner() {
+      html5QrCode = new Html5Qrcode("reader");
+      const config = { fps: 10, qrbox: 250 };
+      const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        document.getElementById("qr-result").value = decodedText;
+        html5QrCode.stop();
       };
 
-      fetch(sheetURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.text())
-      .then(msg => {
-        resultElement.innerText += `\n✅ ${msg}`;
-      })
-      .catch(err => {
-        resultElement.innerText += `\n❌ Error: ${err}`;
+      Html5Qrcode.getCameras().then(devices => {
+        const backCamera = devices.find(device => device.label.toLowerCase().includes('back')) || devices[0];
+        html5QrCode.start(
+          { deviceId: { exact: backCamera.id } },
+          config,
+          qrCodeSuccessCallback
+        ).catch(err => console.error("Camera start failed", err));
       });
     }
 
-    startBtn.addEventListener("click", () => {
-      readerElement.style.display = "block";
-      html5QrCode = new Html5Qrcode("reader");
+    function sendData() {
+      const name = document.getElementById("name").value;
+      const qrCode = document.getElementById("qr-result").value;
+      const timestamp = new Date().toISOString();
+      const status = qrCode ? "Scanned" : "Failed";
 
-      Html5Qrcode.getCameras().then(devices => {
-        const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
-
-        html5QrCode.start(
-          backCam.id,
-          { fps: 10, qrbox: 250 },
-          decodedText => {
-            resultElement.innerText = `Scanned: ${decodedText}`;
-            sendToSheet(decodedText);
-            html5QrCode.stop();
-            readerElement.style.display = "none";
-          }
-        );
+      const url = "https://script.google.com/macros/s/AKfycby3G-2F1dSzPuXNgqKqo-7B6NjdxD9MXO_VTjxfArribBYClFCKhLC71HURxWHkKXQ7/exec";
+      const params = new URLSearchParams({
+        name,
+        timestamp,
+        qrcode: qrCode,
+        status
       });
-    });
+
+      fetch(`${url}?${params}`, { method: 'GET' })
+        .then(response => response.text())
+        .then(result => alert("Data sent successfully!"))
+        .catch(error => alert("Error sending data"));
+    }
   </script>
 </body>
 </html>
