@@ -69,7 +69,11 @@
       fetch(`${url}?${params}`, { method: 'GET' })
         .then(response => response.text())
         .then(result => alert("Data sent successfully!"))
-        .catch(error => alert("Error sending data"));
+        .catch(error => {
+  console.error(error);
+  alert("Error sending data: " + error.message);
+});
+
     }
   </script>
 </body>
