@@ -1,46 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Barcode Scanner to Google Sheets</title>
+  <title>QR Scanner with Google Sheet</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #reader { width: 300px; }
+    body { font-family: sans-serif; text-align: center; padding: 20px; }
+    #reader { width: 300px; margin: 20px auto; display: none; }
+    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+    #result { margin-top: 20px; font-size: 18px; color: green; white-space: pre-wrap; }
   </style>
 </head>
 <body>
-  <h1>Scan Barcode</h1>
+  <h1>QR Code Scanner</h1>
+  <button id="startBtn">Start Scan</button>
   <div id="reader"></div>
-  <p id="result"></p>
+  <div id="result">Scanned data will appear here</div>
 
   <script>
-    const sheetURL = "https://script.google.com/macros/s/AKfycby3G-2F1dSzPuXNgqKqo-7B6NjdxD9MXO_VTjxfArribBYClFCKhLC71HURxWHkKXQ7/exec"; // Replace with your Apps Script Web App URL
+    const sheetURL = "https://script.google.com/macros/s/AKfycby3G-2F1dSzPuXNgqKqo-7B6NjdxD9MXO_VTjxfArribBYClFCKhLC71HURxWHkKXQ7/exec";
 
-    function sendDataToSheet(barcode) {
+    const startBtn = document.getElementById("startBtn");
+    const resultElement = document.getElementById("result");
+    const readerElement = document.getElementById("reader");
+    let html5QrCode;
+
+    function sendToSheet(id) {
+      const payload = {
+        id: id,
+        data: "QR from Web"
+      };
+
       fetch(sheetURL, {
         method: "POST",
-        contentType: "application/json",
-        body: JSON.stringify({ barcode: barcode })
-      }).then(res => res.text())
-        .then(txt => document.getElementById("result").innerText = "Sent: " + barcode)
-        .catch(err => console.error("Error:", err));
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.text())
+      .then(msg => {
+        resultElement.innerText += `\n✅ ${msg}`;
+      })
+      .catch(err => {
+        resultElement.innerText += `\n❌ Error: ${err}`;
+      });
     }
 
-    const html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: 250 };
+    startBtn.addEventListener("click", () => {
+      readerElement.style.display = "block";
+      html5QrCode = new Html5Qrcode("reader");
 
-    html5QrCode.start(
-      { facingMode: "environment" },
-      config,
-      (decodedText, decodedResult) => {
-        html5QrCode.stop();
-        sendDataToSheet(decodedText);
-        setTimeout(() => location.reload(), 3000); // Restart scanner after 3s
-      },
-      errorMessage => {
-        // Ignore scan errors
-      }
-    );
+      Html5Qrcode.getCameras().then(devices => {
+        const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+
+        html5QrCode.start(
+          backCam.id,
+          { fps: 10, qrbox: 250 },
+          decodedText => {
+            resultElement.innerText = `Scanned: ${decodedText}`;
+            sendToSheet(decodedText);
+            html5QrCode.stop();
+            readerElement.style.display = "none";
+          }
+        );
+      });
+    });
   </script>
 </body>
 </html>
