@@ -1,46 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Manual Barcode Logger</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Barcode Logger</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f2f5;
       text-align: center;
-      padding: 50px;
+      background-color: #f4f4f4;
+      padding: 20px;
     }
-
-    h2 {
-      margin-bottom: 20px;
-    }
-
-    form {
-      display: inline-block;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    input, select, button {
-      font-size: 16px;
+    input {
       padding: 10px;
-      margin: 10px;
-      width: 100%;
-      max-width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      width: 250px;
+      font-size: 16px;
     }
-
     button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
       background-color: #3498db;
       color: white;
       border: none;
+      border-radius: 5px;
       cursor: pointer;
     }
-
     #status {
       margin-top: 20px;
       font-weight: bold;
@@ -48,63 +33,50 @@
   </style>
 </head>
 <body>
-
-  <h2>Manual Barcode IN/OUT Logger</h2>
-
-  <form id="barcodeForm">
-    <input type="datetime-local" id="timestamp" required>
-    <input type="text" id="barcode" placeholder="Enter Barcode" required>
-    <select id="action" required>
-      <option value="">Select Action</option>
-      <option value="IN">IN</option>
-      <option value="OUT">OUT</option>
-    </select>
-    <button type="submit">Send to Sheet</button>
-  </form>
-
+  <h2>Barcode IN/OUT Logger</h2>
+  <input type="text" id="barcode" placeholder="Enter or scan barcode" autofocus />
+  <br/>
+  <button onclick="submitData('IN')">IN</button>
+  <button onclick="submitData('OUT')">OUT</button>
   <div id="status"></div>
 
   <script>
-    const form = document.getElementById('barcodeForm');
-    const status = document.getElementById('status');
+    const endpoint = 'https://script.google.com/macros/s/AKfycbxXjjb3sliBMHE1fnsCN0_uYdAF59GnAO726m3YRh0IsqFmPE_vHp3LZ4yS3RYAhhq-/exec';
 
-    // Set current datetime by default
-    document.getElementById("timestamp").value = new Date().toISOString().slice(0, 16);
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
+    async function submitData(action) {
       const barcode = document.getElementById('barcode').value.trim();
-      const action = document.getElementById('action').value;
-      const timestamp = document.getElementById('timestamp').value;
+      if (!barcode) {
+        document.getElementById('status').innerText = 'Please enter a barcode.';
+        return;
+      }
 
-      const data = {
+      const payload = {
         code: barcode,
         action: action,
-        timestamp: timestamp
+        timestamp: new Date().toISOString()
       };
 
       try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycbxXjjb3sliBMHE1fnsCN0_uYdAF59GnAO726m3YRh0IsqFmPE_vHp3LZ4yS3RYAhhq-/exec", {
-          method: "POST",
+        const res = await fetch(endpoint, {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
-        if (result.result === "success") {
-          status.textContent = "✅ Data logged successfully!";
-          form.reset();
+        const result = await res.json();
+
+        if (result.result === 'success') {
+          document.getElementById('status').innerText = `${action} recorded for ${barcode}`;
         } else {
-          status.textContent = "❌ Error: " + result.message;
+          throw new Error(result.message);
         }
       } catch (err) {
-        status.textContent = "❌ Request failed: " + err.message;
+        console.error('Error:', err);
+        document.getElementById('status').innerText = 'Request failed: ' + err.message;
       }
-    });
+    }
   </script>
-
 </body>
 </html>
